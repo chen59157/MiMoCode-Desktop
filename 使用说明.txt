@@ -1,0 +1,86 @@
+═══════════════════════════════════════════════════
+  MiMo Code Desktop v0.1.0
+  开源 AI 编程智能体 · 跨会话记忆
+═══════════════════════════════════════════════════
+
+【使用方法】
+
+  双击 "MiMoCode-启动点这里.bat" 即可启动桌面应用。
+
+
+【文件说明】
+
+  MiMoCode-启动点这里.bat   启动入口（双击即可）
+  app.py                    桌面应用主程序
+  index.html                Web UI 界面
+  icon.ico                  应用图标
+  bin/mimo.exe              MiMo AI 后端引擎
+
+
+【功能介绍】
+
+  · 智能编程     基于 MiMo-V2.5 大模型，支持代码生成、调试、重构
+  · 跨会话记忆   拥有持久化项目记忆，跨对话保留上下文
+  · 权限管理     AI 操作电脑时弹出审批，安全可控
+  · 实时面板     右侧展示思考过程、工具调用、文件变更
+  · 多种模式     build（构建）、plan（规划）、compose（编排）
+
+
+【模型信息】
+
+  默认模型:  MiMo Auto（MiMo-V2.5，免费使用中）
+  上下文:    支持 100 万 token
+  基座参数:  MiMo-7B（25 万亿 token 训练）
+
+
+【快捷操作】
+
+  理解代码     分析项目结构与架构
+  构建功能     规划、实现并测试新功能
+  审查变更     检查 diff、运行检查、发现问题
+  调试修复     复现问题、定位根因、验证修复
+
+
+【相关链接】
+
+  官网:     https://mimo.xiaomi.com/mimocode
+  文档:     https://mimo.xiaomi.com/mimocode/start
+  GitHub:   https://github.com/XiaomiMiMo/MiMo-Code
+  模型:     https://huggingface.co/XiaomiMiMo
+  安装 CLI: curl -fsSL https://mimo.xiaomi.com/install | bash
+
+
+【技术架构】
+
+  ┌─────────────────────────────────────┐
+  │  MiMo Code Desktop (pywebview)      │
+  │  ┌───────────────────────────────┐  │
+  │  │  Edge WebView2 (原生渲染)     │  │
+  │  │  index.html (Web UI)          │  │
+  │  └──────────────┬────────────────┘  │
+  │                 │ HTTP API           │
+  │  ┌──────────────▼────────────────┐  │
+  │  │  mimo.exe serve (端口 3456)   │  │
+  │  └───────────────────────────────┘  │
+  └─────────────────────────────────────┘
+
+
+【环境要求】
+
+  · Windows 10/11（自带 Edge WebView2）
+  · Python 3.10+
+  · pip install pywebview
+
+
+【打包为独立 .exe】
+
+  1. pip install pyinstaller
+  2. cd desktop && build.bat
+  3. 生成的 MiMo Code.exe 在 dist 目录
+
+
+【许可协议】
+
+  MIT License
+  Copyright (c) Xiaomi MiMo Team
+  https://github.com/XiaomiMiMo/MiMo-Code
