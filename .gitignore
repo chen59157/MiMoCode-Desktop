@@ -24,3 +24,6 @@ desktop.ini
 
 # MiMo binary (136MB, too large for GitHub)
 bin/mimo.exe
+
+# MiMo config (user-specific)
+config.json
