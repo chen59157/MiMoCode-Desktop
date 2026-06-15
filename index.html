@@ -610,10 +610,12 @@
     .message-body strong { font-weight: 600; color: var(--text-primary); }
     .message-body em { font-style: italic; }
     .message-body a {
-      color: var(--mimo-orange);
+      color: var(--mimo-amber);
       text-decoration: none;
+      border-bottom: 1px solid transparent;
+      transition: border-color var(--transition-fast);
     }
-    .message-body a:hover { text-decoration: underline; }
+    .message-body a:hover { border-bottom-color: var(--mimo-amber); }
 
     .message-body ul, .message-body ol {
       margin: 8px 0;
@@ -649,17 +651,24 @@
       align-items: center;
       justify-content: space-between;
       padding: 8px 14px;
-      background: var(--bg-tertiary);
+      background: #161616;
       border-bottom: 1px solid var(--border-primary);
       font-size: 12px;
+      border-radius: var(--radius-md) var(--radius-md) 0 0;
     }
 
     .code-lang {
-      color: var(--text-tertiary);
+      color: var(--mimo-amber);
       font-family: var(--font-mono);
       font-size: 11px;
       text-transform: uppercase;
       letter-spacing: 0.5px;
+      font-weight: 600;
+    }
+
+    .code-header-actions {
+      display: flex;
+      gap: 4px;
     }
 
     .btn-copy {
@@ -672,6 +681,9 @@
       font-size: 11px;
       font-family: var(--font-sans);
       transition: all var(--transition-fast);
+      display: flex;
+      align-items: center;
+      gap: 4px;
     }
 
     .btn-copy:hover {
@@ -681,6 +693,25 @@
 
     .btn-copy.copied {
       color: #4ADE80;
+      background: rgba(74, 222, 128, 0.1);
+    }
+
+    .btn-apply-code {
+      padding: 4px 10px;
+      border: 1px solid var(--mimo-amber);
+      border-radius: var(--radius-sm);
+      background: transparent;
+      color: var(--mimo-amber);
+      cursor: pointer;
+      font-size: 11px;
+      font-family: var(--font-sans);
+      font-weight: 600;
+      transition: all var(--transition-fast);
+    }
+
+    .btn-apply-code:hover {
+      background: var(--mimo-amber);
+      color: var(--bg-primary);
     }
 
     .message-body pre code {
@@ -903,6 +934,56 @@
     @keyframes dotPulse {
       0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
       40% { opacity: 1; transform: scale(1.1); }
+    }
+
+    /* Streaming cursor */
+    .streaming-cursor {
+      display: inline-block;
+      width: 2px;
+      height: 16px;
+      background: var(--mimo-amber);
+      margin-left: 2px;
+      vertical-align: text-bottom;
+      animation: blink 1s step-end infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    /* Message action buttons */
+    .message-actions {
+      display: flex;
+      gap: 4px;
+      margin-top: 8px;
+      opacity: 0;
+      transition: opacity var(--transition-fast);
+    }
+
+    .message:hover .message-actions {
+      opacity: 1;
+    }
+
+    .btn-msg-action {
+      padding: 4px 10px;
+      border: 1px solid var(--border-secondary);
+      border-radius: var(--radius-sm);
+      background: transparent;
+      color: var(--text-tertiary);
+      cursor: pointer;
+      font-size: 11px;
+      font-family: var(--font-sans);
+      transition: all var(--transition-fast);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .btn-msg-action:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+      border-color: var(--border-hover);
     }
 
     /* ============================================
@@ -3075,6 +3156,15 @@
           }
         }
 
+        // Add action buttons for assistant messages
+        if (isAssistant && parts.some(p => p.type === 'text' && p.text)) {
+          const textParts = parts.filter(p => p.type === 'text' && p.text);
+          const fullText = textParts.map(p => p.text).join('\n');
+          html += `<div class="message-actions">
+            <button class="btn-msg-action" onclick="copyMessageText(this)" data-text="${escapeHtml(fullText.substring(0, 500))}" title="复制消息">📋 复制</button>
+          </div>`;
+        }
+
         html += `</div></div>`;
       }
 
@@ -3385,7 +3475,7 @@
           <div class="message-time">${time}</div>
           ${extra}
         </div>
-        <div class="message-body">${isUser ? escapeHtml(text) : '<div class="msg-generating"><span class="dot-pulse"></span></div>'}</div>`;
+        <div class="message-body">${isUser ? escapeHtml(text) : '<div class="msg-generating"><span class="streaming-cursor"></span></div>'}</div>`;
 
       container.appendChild(div);
       scrollToBottom();
@@ -4182,10 +4272,25 @@
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;');
 
-      // Code blocks with language
+      // Code blocks with language + basic syntax highlighting
       html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (match, lang, code) => {
         const langLabel = lang || 'code';
-        return `<pre><div class="code-header"><span class="code-lang">${langLabel}</span><button class="btn-copy" onclick="copyCode(this)">复制</button></div><code>${code.trim()}</code></pre>`;
+        let highlighted = code.trim();
+        // Basic syntax highlighting
+        highlighted = highlighted
+          // Comments
+          .replace(/(\/\/.*$)/gm, '<span style="color:#6A9955">$1</span>')
+          .replace(/(#.*$)/gm, '<span style="color:#6A9955">$1</span>')
+          .replace(/(\/\*[\s\S]*?\*\/)/g, '<span style="color:#6A9955">$1</span>')
+          // Strings
+          .replace(/(&quot;[^&]*?&quot;|&#39;[^&]*?&#39;|`[^`]*?`)/g, '<span style="color:#CE9178">$1</span>')
+          // Keywords
+          .replace(/\b(function|const|let|var|return|if|else|for|while|class|import|export|from|async|await|try|catch|throw|new|this|typeof|instanceof|def|print|self|None|True|False|in|not|and|or|is)\b/g, '<span style="color:#C586C0">$1</span>')
+          // Numbers
+          .replace(/\b(\d+\.?\d*)\b/g, '<span style="color:#B5CEA8">$1</span>')
+          // Types/builtins
+          .replace(/\b(true|false|null|undefined|None|True|False|console|window|document|Math|JSON|Array|Object|String|Number|Boolean)\b/g, '<span style="color:#4EC9B0">$1</span>');
+        return `<pre><div class="code-header"><span class="code-lang">${langLabel}</span><div class="code-header-actions"><button class="btn-copy" onclick="copyCode(this)" title="复制代码">📋 复制</button></div></div><code>${highlighted}</code></pre>`;
       });
 
       // Inline code
@@ -4243,10 +4348,24 @@
     function copyCode(button) {
       const code = button.closest('pre').querySelector('code').textContent;
       navigator.clipboard.writeText(code).then(() => {
-        button.textContent = '已复制';
+        button.innerHTML = '✓ 已复制';
         button.classList.add('copied');
         setTimeout(() => {
-          button.textContent = '复制';
+          button.innerHTML = '📋 复制';
+          button.classList.remove('copied');
+        }, 2000);
+      });
+    }
+
+    function copyMessageText(button) {
+      const msgBody = button.closest('.message').querySelector('.message-body');
+      const text = msgBody?.innerText || '';
+      navigator.clipboard.writeText(text).then(() => {
+        const orig = button.innerHTML;
+        button.innerHTML = '✓ 已复制';
+        button.classList.add('copied');
+        setTimeout(() => {
+          button.innerHTML = orig;
           button.classList.remove('copied');
         }, 2000);
       });
