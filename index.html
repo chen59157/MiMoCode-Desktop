@@ -2469,6 +2469,32 @@
       border-color: rgba(255, 59, 48, 0.5);
     }
 
+    /* Loading skeleton */
+    .loading-skeleton {
+      padding: 24px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .skeleton-msg {
+      height: 60px;
+      background: linear-gradient(90deg, var(--bg-tertiary) 25%, var(--bg-hover) 50%, var(--bg-tertiary) 75%);
+      background-size: 200% 100%;
+      border-radius: var(--radius-md);
+      margin-bottom: 16px;
+      animation: shimmer 1.5s ease-in-out infinite;
+    }
+
+    .skeleton-msg.short {
+      width: 60%;
+      height: 40px;
+    }
+
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+
     /* Scroll-to-bottom button */
     .scroll-bottom-btn {
       position: absolute;
@@ -2988,6 +3014,26 @@
     // ============================================
     // API Client
     // ============================================
+    // Error message translation
+    function translateError(err) {
+      const msg = err?.message || String(err);
+      if (msg.includes('Failed to fetch') || msg.includes('NetworkError') || msg.includes('ECONNREFUSED'))
+        return '无法连接到 MiMo Code 服务器，请检查后端是否运行';
+      if (msg.includes('timeout') || msg.includes('Timeout'))
+        return '请求超时，请稍后重试';
+      if (msg.includes('401') || msg.includes('Unauthorized'))
+        return '认证失败，请检查 API Key';
+      if (msg.includes('429') || msg.includes('Too Many'))
+        return '请求过于频繁，请稍后再试';
+      if (msg.includes('500') || msg.includes('Internal'))
+        return '服务器内部错误，请稍后重试';
+      if (msg.includes('502') || msg.includes('503'))
+        return '服务暂时不可用，请稍后重试';
+      if (msg.includes('aborted') || msg.includes('AbortError'))
+        return '请求已取消';
+      return msg;
+    }
+
     async function api(path, options = {}) {
       const url = `${API_BASE}${path}`;
       const headers = {
@@ -3116,6 +3162,10 @@
 
       document.getElementById('headerTitle').textContent = session?.title || '新对话';
       document.getElementById('headerSubtitle').textContent = session?.directory || '';
+
+      // Show loading skeleton while messages load
+      const messagesInner = document.getElementById('messagesInner');
+      messagesInner.innerHTML = '<div class="loading-skeleton"><div class="skeleton-msg"></div><div class="skeleton-msg short"></div><div class="skeleton-msg"></div></div>';
 
       renderSessionList();
       await loadMessages(sessionId);
@@ -3641,10 +3691,9 @@
         // Poll for completion
         await pollForCompletion();
       } catch (err) {
-        const errMsg = err.message || '未知错误';
-        showToast('发送失败: ' + errMsg, 'error');
-        // Show inline error with retry
-        showInlineError('发送失败: ' + errMsg, () => {
+        const errMsg = translateError(err);
+        showToast(errMsg, 'error');
+        showInlineError(errMsg, () => {
           document.getElementById('chatInput').value = text;
           sendMessage();
         });
