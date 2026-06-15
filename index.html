@@ -103,6 +103,7 @@
       background: var(--bg-primary);
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
+      scroll-behavior: smooth;
     }
 
     #app {
@@ -119,6 +120,29 @@
       border-radius: var(--radius-full);
     }
     ::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
+
+    /* Focus styles for accessibility */
+    :focus-visible {
+      outline: 2px solid var(--mimo-amber);
+      outline-offset: 2px;
+    }
+
+    button:focus-visible {
+      outline: 2px solid var(--mimo-amber);
+      outline-offset: 2px;
+    }
+
+    input:focus-visible, textarea:focus-visible {
+      outline: none;
+      border-color: var(--mimo-amber);
+      box-shadow: 0 0 0 3px var(--mimo-orange-glow);
+    }
+
+    /* Selection */
+    ::selection {
+      background: var(--mimo-orange-glow-strong);
+      color: var(--text-primary);
+    }
 
     /* ============================================
        Sidebar
@@ -2581,6 +2605,21 @@
     /* ============================================
        Responsive
        ============================================ */
+    @media (max-width: 1024px) {
+      .activity-panel {
+        flex: 0 0 300px;
+        width: 300px;
+      }
+
+      .shortcut-hint {
+        display: none;
+      }
+
+      .agent-mode-label {
+        display: none;
+      }
+    }
+
     @media (max-width: 768px) {
       .sidebar {
         position: fixed;
@@ -2604,6 +2643,22 @@
 
       .header-btn .btn-text {
         display: none;
+      }
+
+      .activity-panel {
+        display: none;
+      }
+
+      .messages-inner {
+        padding: 0 16px;
+      }
+
+      .welcome h1 {
+        font-size: 24px;
+      }
+
+      .welcome-install {
+        font-size: 12px;
       }
     }
 
