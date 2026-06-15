@@ -1631,7 +1631,12 @@
       font-size: 10px;
       font-weight: 600;
       background: var(--mimo-orange-glow);
-      color: var(--mimo-orange);
+      color: var(--mimo-amber);
+    }
+
+    .model-item-badge.free {
+      background: rgba(74, 222, 128, 0.15);
+      color: #4ADE80;
     }
 
     /* ============================================
@@ -2576,11 +2581,30 @@
       gap: 8px;
       animation: toastIn 0.3s ease;
       max-width: 360px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .toast::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      height: 2px;
+      background: currentColor;
+      opacity: 0.3;
+      animation: toastProgress 3s linear forwards;
+    }
+
+    @keyframes toastProgress {
+      from { width: 100%; }
+      to { width: 0%; }
     }
 
     .toast.success { border-left: 3px solid #4ADE80; }
-    .toast.error { border-left: 3px solid #FF3B30; }
+    .toast.error { border-left: 3px solid #FF6B6B; }
     .toast.info { border-left: 3px solid #60A5FA; }
+    .toast.warning { border-left: 3px solid #E1A555; }
 
     @keyframes toastIn {
       from { opacity: 0; transform: translateX(20px); }
@@ -4114,7 +4138,7 @@
                 <div class="model-item-name">${escapeHtml(model.name)}</div>
                 <div class="model-item-id">${escapeHtml(model.id)}</div>
               </div>
-              ${isFree ? '<span class="model-item-badge">免费</span>' : ''}
+              ${isFree ? '<span class="model-item-badge free">免费</span>' : ''}
               ${isActive ? '<span class="model-item-badge">当前</span>' : ''}
             </div>`;
         }
