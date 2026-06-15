@@ -1975,6 +1975,60 @@
       50% { opacity: 0.4; }
     }
 
+    .agent-mode {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      margin-left: 8px;
+      padding-left: 8px;
+      border-left: 1px solid var(--border-primary);
+    }
+
+    .agent-mode-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-right: 2px;
+    }
+
+    .agent-mode-btn {
+      padding: 1px 8px;
+      border: 1px solid transparent;
+      border-radius: 3px;
+      background: transparent;
+      color: var(--text-tertiary);
+      cursor: pointer;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      transition: all var(--transition-fast);
+    }
+
+    .agent-mode-btn:hover {
+      background: var(--bg-hover);
+      color: var(--text-secondary);
+    }
+
+    .agent-mode-btn.active {
+      background: var(--mimo-orange-glow);
+      color: var(--mimo-amber);
+      border-color: rgba(225, 165, 85, 0.3);
+    }
+
+    .shortcut-hint {
+      font-size: 11px;
+      color: var(--text-muted);
+      gap: 4px;
+    }
+
+    .shortcut-hint kbd {
+      padding: 1px 5px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-primary);
+      border-radius: 3px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-tertiary);
+    }
+
     /* ============================================
        Provider Browser
        ============================================ */
@@ -2785,13 +2839,14 @@
               ></textarea>
               <div class="input-actions">
                 <button class="input-action-btn" title="附件" onclick="showToast('附件功能开发中', 'info')">📎</button>
-                <button class="btn-send" id="btnSend" onclick="sendMessage()" title="发送">
+                <button class="input-action-btn" title="斜杠命令" onclick="document.getElementById('chatInput').value='/';document.getElementById('chatInput').focus()">/</button>
+                <button class="btn-send" id="btnSend" onclick="sendMessage()" title="发送 (Enter)">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                 </button>
               </div>
             </div>
             <div class="input-hint">
-              <span><kbd>Enter</kbd> 发送 · <kbd>Shift</kbd>+<kbd>Enter</kbd> 换行</span>
+              <span><kbd>Enter</kbd> 发送 · <kbd>Shift+Enter</kbd> 换行 · <kbd>Esc</kbd> 停止 · <kbd>/</kbd> 命令</span>
               <span id="charCount"></span>
             </div>
           </div>
@@ -2806,9 +2861,18 @@
             <span id="statusText">已连接</span>
           </div>
           <div class="status-item" id="sessionStatus"></div>
+          <div class="status-item agent-mode" id="agentMode">
+            <span class="agent-mode-label">模式:</span>
+            <button class="agent-mode-btn active" data-mode="build" onclick="switchAgentMode('build')" title="构建模式 - 完整工具权限">build</button>
+            <button class="agent-mode-btn" data-mode="plan" onclick="switchAgentMode('plan')" title="规划模式 - 只读分析">plan</button>
+            <button class="agent-mode-btn" data-mode="compose" onclick="switchAgentMode('compose')" title="编排模式 - 规格驱动开发">compose</button>
+          </div>
         </div>
         <div class="status-right">
           <div class="status-item" id="tokenInfo"></div>
+          <div class="status-item shortcut-hint">
+            <kbd>Esc</kbd> 停止 · <kbd>Enter</kbd> 发送 · <kbd>Shift+Enter</kbd> 换行
+          </div>
           <div class="status-item" id="projectPath"></div>
         </div>
       </div>
@@ -4142,6 +4206,31 @@
       requestAnimationFrame(() => {
         area.scrollTop = area.scrollHeight;
       });
+    }
+
+    // Agent mode switching
+    let currentAgentMode = 'build';
+
+    function switchAgentMode(mode) {
+      currentAgentMode = mode;
+      document.querySelectorAll('.agent-mode-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.mode === mode);
+      });
+      const modeLabels = { build: '构建', plan: '规划', compose: '编排' };
+      showToast(`已切换到 ${modeLabels[mode]} 模式`, 'info');
+      // Update input placeholder based on mode
+      const modePlaceholders = {
+        build: ['描述你想要构建的功能...', '让我帮你写代码...', '输入需求开始构建...'],
+        plan: ['分析这段代码的架构...', '帮我规划这个功能...', '阅读并理解这个项目...'],
+        compose: ['描述规格要求...', '按规范驱动开发...', '定义验收标准...'],
+      };
+      const p = modePlaceholders[mode];
+      if (p) {
+        placeholders = p.concat(placeholders.filter(t => !p.includes(t)));
+        placeholderIndex = 0;
+        const input = document.getElementById('chatInput');
+        if (input && !input.value) input.placeholder = placeholders[0];
+      }
     }
 
     // Keyboard shortcuts
