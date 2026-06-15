@@ -2245,6 +2245,95 @@
     }
 
     /* ============================================
+       Error Cards
+       ============================================ */
+    .error-message {
+      animation: messageIn 0.3s ease;
+    }
+
+    .error-card {
+      background: rgba(255, 59, 48, 0.08);
+      border: 1px solid rgba(255, 59, 48, 0.2);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      max-width: 600px;
+    }
+
+    .error-card-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .error-card-icon {
+      font-size: 18px;
+    }
+
+    .error-card-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #FF6B6B;
+    }
+
+    .error-card-text {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      margin-bottom: 12px;
+      word-break: break-word;
+    }
+
+    .error-card-retry {
+      padding: 6px 20px;
+      border: 1px solid rgba(255, 59, 48, 0.3);
+      border-radius: var(--radius-sm);
+      background: rgba(255, 59, 48, 0.1);
+      color: #FF6B6B;
+      cursor: pointer;
+      font-size: 12px;
+      font-family: var(--font-sans);
+      font-weight: 600;
+      transition: all var(--transition-fast);
+    }
+
+    .error-card-retry:hover {
+      background: rgba(255, 59, 48, 0.2);
+      border-color: rgba(255, 59, 48, 0.5);
+    }
+
+    /* Scroll-to-bottom button */
+    .scroll-bottom-btn {
+      position: absolute;
+      bottom: 12px;
+      right: 24px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 1px solid var(--border-primary);
+      background: var(--bg-elevated);
+      color: var(--text-secondary);
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      box-shadow: var(--shadow-md);
+      transition: all var(--transition-fast);
+      z-index: 10;
+    }
+
+    .scroll-bottom-btn:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+      border-color: var(--mimo-amber);
+    }
+
+    .scroll-bottom-btn.visible {
+      display: flex;
+    }
+
+    /* ============================================
        Toast Notifications
        ============================================ */
     .toast-container {
@@ -2553,6 +2642,7 @@
             <!-- Messages Area -->
             <div class="messages" id="messagesArea" style="display: none;">
               <div class="messages-inner" id="messagesInner"></div>
+              <button class="scroll-bottom-btn" id="scrollBottomBtn" onclick="forceScrollToBottom()" title="滚动到底部">↓</button>
             </div>
           </div>
 
@@ -3365,8 +3455,13 @@
         // Poll for completion
         await pollForCompletion();
       } catch (err) {
-        showToast('发送失败: ' + err.message, 'error');
-        updateAssistantMessage('发送失败: ' + escapeHtml(err.message));
+        const errMsg = err.message || '未知错误';
+        showToast('发送失败: ' + errMsg, 'error');
+        // Show inline error with retry
+        showInlineError('发送失败: ' + errMsg, () => {
+          document.getElementById('chatInput').value = text;
+          sendMessage();
+        });
       } finally {
         state.isGenerating = false;
         updateSendButton();
@@ -3923,11 +4018,102 @@
       }
     }
 
+    // Smart auto-scroll: pause when user scrolls up
+    let autoScrollEnabled = true;
+    let userScrolledUp = false;
+
+    function initSmartScroll() {
+      const area = document.getElementById('messagesArea');
+      if (!area) return;
+      area.addEventListener('scroll', () => {
+        const atBottom = area.scrollHeight - area.scrollTop - area.clientHeight < 80;
+        userScrolledUp = !atBottom;
+        autoScrollEnabled = atBottom;
+        // Show/hide scroll-to-bottom button
+        const btn = document.getElementById('scrollBottomBtn');
+        if (btn) {
+          btn.classList.toggle('visible', userScrolledUp);
+        }
+      });
+    }
+
     function scrollToBottom() {
+      if (userScrolledUp && state.isGenerating) return;
       const area = document.getElementById('messagesArea');
       requestAnimationFrame(() => {
         area.scrollTop = area.scrollHeight;
       });
+    }
+
+    function forceScrollToBottom() {
+      userScrolledUp = false;
+      autoScrollEnabled = true;
+      const area = document.getElementById('messagesArea');
+      requestAnimationFrame(() => {
+        area.scrollTop = area.scrollHeight;
+      });
+    }
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      // Escape: stop generation or close dialogs
+      if (e.key === 'Escape') {
+        if (state.isGenerating) {
+          abortGeneration();
+          e.preventDefault();
+          return;
+        }
+        // Close any open overlay
+        document.querySelectorAll('.overlay.active, .provider-browser-overlay.active, .permission-dialog.active').forEach(el => {
+          el.classList.remove('active');
+        });
+      }
+
+      // Ctrl+Enter: send (alternative)
+      if (e.key === 'Enter' && e.ctrlKey && !state.isGenerating) {
+        sendMessage();
+        e.preventDefault();
+      }
+    });
+
+    // Rotating placeholder text
+    const placeholders = [
+      '输入你的问题... (Shift+Enter 换行)',
+      '描述你想要构建的功能...',
+      '粘贴错误信息帮你调试...',
+      '输入 /help 查看可用命令...',
+      '提问关于代码的任何问题...',
+      '让我帮你重构这段代码...',
+    ];
+    let placeholderIndex = 0;
+
+    function rotatePlaceholder() {
+      const input = document.getElementById('chatInput');
+      if (!input || document.activeElement === input || input.value) return;
+      placeholderIndex = (placeholderIndex + 1) % placeholders.length;
+      input.placeholder = placeholders[placeholderIndex];
+    }
+
+    setInterval(rotatePlaceholder, 5000);
+
+    // Enhanced error handling
+    function showInlineError(message, retryFn) {
+      const container = document.getElementById('messagesInner');
+      const errorDiv = document.createElement('div');
+      errorDiv.className = 'message error-message';
+      errorDiv.innerHTML = `
+        <div class="message-body">
+          <div class="error-card">
+            <div class="error-card-header">
+              <span class="error-card-icon">⚠️</span>
+              <span class="error-card-title">出错了</span>
+            </div>
+            <div class="error-card-text">${escapeHtml(message)}</div>
+            ${retryFn ? '<button class="error-card-retry" onclick="this.closest(\'.error-message\').remove(); (' + retryFn.toString() + ')()">重试</button>' : ''}
+          </div>
+        </div>`;
+      container.appendChild(errorDiv);
+      forceScrollToBottom();
     }
 
     function setStatus(type, text) {
@@ -4084,6 +4270,9 @@
 
       // Connect SSE
       connectEventStream();
+
+      // Initialize smart scroll
+      initSmartScroll();
 
       // Focus input
       document.getElementById('chatInput').focus();
